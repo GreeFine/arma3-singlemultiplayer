@@ -1,0 +1,20 @@
+[package]
+name = "singlemultiplayer"
+version = "0.1.0"
+authors = ["GreeFine <greefine@hotmail.fr>"]
+edition = "2018"
+
+[lib]
+name = "lib"
+crate-type = ["cdylib", "lib"]
+path = "src/lib.rs"
+
+[[bin]]
+name = "testlib"
+path = "src/bin.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+reqwest = { version= "0.11", features= ["blocking"] }
+libc = "0.2"
