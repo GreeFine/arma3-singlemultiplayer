@@ -1,4 +1,4 @@
-pub fn fetch(url: &String) -> String {
+pub fn fetch(url: &str) -> String {
     println!("request url {}", url);
     let res = reqwest::blocking::get(url).unwrap();
     println!("Status: {}", &res.status());
@@ -8,3 +8,5 @@ pub fn fetch(url: &String) -> String {
     println!("Body:\n{}", body);
     body
 }
+
+pub fn connect(ip: &str) {}

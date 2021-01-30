@@ -1,10 +1,25 @@
+use std::env;
 use std::ffi::{CStr, CString};
 use std::str;
+mod server;
 
 fn main() {
-    unsafe {
-        rve_get_version();
-        rve_get();
+    let args: Vec<_> = env::args().collect();
+
+    if args.len() < 2 {
+        server::start().unwrap();
+    } else {
+        let function = &args[1];
+        let fucntion_args = &args[2..];
+
+        println!(
+            "Testing lib with function: {} addr: {:#?}",
+            &function, &fucntion_args
+        );
+        unsafe {
+            rve_get_version();
+            rve_get(function, fucntion_args);
+        }
     }
 }
 
@@ -17,8 +32,8 @@ unsafe fn rve_get_version() {
     println!("buffer result: [{}]", str::from_utf8(utf8_arr).unwrap());
 }
 
-unsafe fn rve_get() {
-    let function = CString::new("fetch").unwrap().into_raw();
+unsafe fn rve_get(function: &str, function_args: &[String]) {
+    let function_c = CString::new(function).unwrap().into_raw();
     let buffer = CString::new("________________________________________________________________")
         .unwrap()
         .into_raw();
@@ -27,13 +42,12 @@ unsafe fn rve_get() {
     println!("buffer: [{}]", str::from_utf8(utf8_arr).unwrap());
 
     let mut args = Vec::new();
-    let arg1 = CString::new("https://hc-dashboard-back.blackfoot.dev/")
-        .unwrap()
-        .into_raw();
-    let arg2 = CString::new("2 argument").unwrap().into_raw();
-    args.push(arg1 as *const i8);
-    args.push(arg2 as *const i8);
+    for arg in function_args {
+        let new_arg: *const i8 = CString::new(arg.clone()).unwrap().into_raw();
+        args.push(new_arg);
+    }
+
     let argv = args.as_ptr();
-    lib::RVExtensionArgs(buffer, utf8_arr.len() + 1, function, argv, args.len());
+    lib::RVExtensionArgs(buffer, utf8_arr.len() + 1, function_c, argv, args.len());
     println!("buffer result: [{}]", str::from_utf8(utf8_arr).unwrap());
 }
