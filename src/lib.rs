@@ -73,9 +73,6 @@ pub unsafe extern "stdcall" fn RVExtensionArgs(
     a3_argc as c_int
 }
 
-    craft_responsse(res, a3_output, a3_outputSize);
-}
-
 /// # Safety
 // Called by Engine on extension load
 // __attribute__((dllexport)) void RVExtensionVersion(char *output, int outputSize);
