@@ -1,6 +1,9 @@
+#![allow(non_snake_case)]
 use std::env;
 use std::ffi::{CStr, CString};
 use std::str;
+
+use libc::c_int;
 mod server;
 
 fn main() {
@@ -13,7 +16,7 @@ fn main() {
         let fucntion_args = &args[2..];
 
         println!(
-            "Testing lib with function: {} addr: {:#?}",
+            "Testing lib with function: {} args: {:#?}",
             &function, &fucntion_args
         );
         unsafe {
@@ -28,7 +31,7 @@ unsafe fn rve_get_version() {
 
     let utf8_arr: &[u8] = CStr::from_ptr(buffer).to_bytes();
     println!("buffer: [{}]", str::from_utf8(utf8_arr).unwrap());
-    lib::RVExtensionVersion(buffer, utf8_arr.len() + 1);
+    ASMP::RVExtensionVersion(buffer, utf8_arr.len() + 1);
     println!("buffer result: [{}]", str::from_utf8(utf8_arr).unwrap());
 }
 
@@ -48,6 +51,12 @@ unsafe fn rve_get(function: &str, function_args: &[String]) {
     }
 
     let argv = args.as_ptr();
-    lib::RVExtensionArgs(buffer, utf8_arr.len() + 1, function_c, argv, args.len());
+    ASMP::RVExtensionArgs(
+        buffer,
+        (utf8_arr.len() + 1) as c_int,
+        function_c,
+        argv,
+        args.len() as c_int,
+    );
     println!("buffer result: [{}]", str::from_utf8(utf8_arr).unwrap());
 }

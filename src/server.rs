@@ -45,6 +45,6 @@ fn tranfer_packet(
 fn check_if_new_user(src: SocketAddr, users_socket: &mut Vec<SocketAddr>) {
     if !users_socket.contains(&src) {
         users_socket.push(src);
-        print!("New user: {}", src.to_string())
+        println!("New user: {}", src.to_string())
     }
 }
