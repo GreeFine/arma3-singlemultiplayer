@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 use libc::{c_char, c_int};
+use rand::prelude::*;
 use std::ffi::{CStr, CString};
-use std::io::Write;
 use std::{env, thread, time::Duration};
 use std::{io, str};
 use termion::input::TermRead;
@@ -13,51 +13,90 @@ fn main() {
     if args.len() < 2 {
         println!("Missing parametters");
     } else {
-        let function = &args[1];
-        let fucntion_args = &args[2..];
+        let mut stresstest = false;
+        let function_args = args[2..].to_vec();
+        let function;
+        if args[1] == "stresstest" {
+            stresstest = true;
+            function = String::from("connect");
+        } else {
+            function = String::from(&args[1]);
+        }
 
         println!(
             "Testing lib with function: {} args: {:#?}",
-            &function, &fucntion_args
+            &function, &function_args
         );
-        unsafe {
-            rve_get_version();
-            rve_send_ptr();
-            rve_get(function, fucntion_args);
-        }
-        if function == "connect" {
-            let mut stdout = io::stdout().into_raw_mode().unwrap();
-            let mut stdin = termion::async_stdin().keys();
-            let mut pos: [i8; 3] = [0, 0, 0];
-            let sendfnc = "send";
-            loop {
-                let input = stdin.next();
-                if let Some(Ok(key)) = input {
-                    match key {
-                        termion::event::Key::Char('q') => break,
-                        termion::event::Key::Char('w') => unsafe {
-                            pos[0] += 1;
-                            rve_get(sendfnc, &[format!("[{},{},{}]", pos[0], pos[1], pos[2])]);
-                        },
-                        termion::event::Key::Char('s') => unsafe {
-                            pos[0] -= 1;
-                            rve_get(sendfnc, &[format!("[{},{},{}]", pos[0], pos[1], pos[2])]);
-                        },
-                        termion::event::Key::Char('a') => unsafe {
-                            pos[1] += 1;
-                            rve_get(sendfnc, &[format!("[{},{},{}]", pos[0], pos[1], pos[2])]);
-                        },
-                        termion::event::Key::Char('d') => unsafe {
-                            pos[1] -= 1;
-                            rve_get(sendfnc, &[format!("[{},{},{}]", pos[0], pos[1], pos[2])]);
-                        },
-                        _ => {}
-                    }
-                    write!(stdout, "{}", termion::cursor::Goto(1, 1),).unwrap();
-                }
-                thread::sleep(Duration::from_millis(50));
+        if stresstest {
+            stresstesting();
+        } else {
+            call_lib(&function, &function_args);
+            if &function == "connect" {
+                controle_unit();
             }
         }
+    }
+}
+
+fn stresstesting() {
+    let sendfnc = "send";
+    let mut rng = rand::thread_rng();
+    let mut pos: [f32; 3] = [0.0, 0.0, 0.0];
+    call_lib(&String::from("connect"), &[]);
+    loop {
+        let displacement: f32 = rng.gen();
+        let direction = rng.gen_range(0..2);
+        if rng.gen() {
+            pos[direction] += displacement;
+        } else {
+            pos[direction] -= displacement;
+        }
+        unsafe {
+            rve_get(sendfnc, &[format!("[{},{},{}]", pos[0], pos[1], pos[2])]);
+        };
+        thread::sleep(Duration::from_millis(30));
+    }
+}
+
+fn call_lib(function: &str, function_args: &[String]) {
+    unsafe {
+        rve_get_version();
+        rve_send_ptr();
+        rve_get(function, function_args);
+    }
+}
+
+fn controle_unit() {
+    let _stdout = io::stdout().into_raw_mode().unwrap();
+    let mut stdin = termion::async_stdin().keys();
+    let mut pos: [i8; 3] = [0, 0, 0];
+    loop {
+        let sendfnc = "send";
+        let input = stdin.next();
+        if let Some(Ok(key)) = input {
+            match key {
+                termion::event::Key::Char('q') => break,
+                termion::event::Key::Char('w') => unsafe {
+                    pos[0] += 1;
+                    rve_get(sendfnc, &[format!("[{},{},{}]", pos[0], pos[1], pos[2])]);
+                },
+                termion::event::Key::Char('s') => unsafe {
+                    pos[0] -= 1;
+                    rve_get(sendfnc, &[format!("[{},{},{}]", pos[0], pos[1], pos[2])]);
+                },
+                termion::event::Key::Char('a') => unsafe {
+                    pos[1] += 1;
+                    rve_get(sendfnc, &[format!("[{},{},{}]", pos[0], pos[1], pos[2])]);
+                },
+                termion::event::Key::Char('d') => unsafe {
+                    pos[1] -= 1;
+                    rve_get(sendfnc, &[format!("[{},{},{}]", pos[0], pos[1], pos[2])]);
+                },
+                _ => {}
+            }
+            // write!(stdout, "{}", termion::cursor::Goto(2, 0),).unwrap();
+        }
+        thread::sleep(Duration::from_millis(50));
     }
 }
 

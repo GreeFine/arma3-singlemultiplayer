@@ -38,7 +38,7 @@ impl Connection {
         '|'.encode_utf8(&mut separator);
 
         if connection.is_ok() {
-            socket.send(b"Hello").unwrap();
+            // socket.send(b"Hello").unwrap(); //TODO: should have have hello packet but for now it's fine without
             self.socket = Some(socket);
             self.is_connected = true;
             thread::spawn(move || {
