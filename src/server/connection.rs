@@ -34,9 +34,10 @@ fn tranfer_packet(
     users_socket: &[SocketAddr],
     socket: &UdpSocket,
 ) -> std::io::Result<()> {
+    let bufsocket = format!("{}|{}", sender, from_utf8(buf).unwrap());
     for src in users_socket {
         if &sender != src {
-            socket.send_to(buf, src)?;
+            socket.send_to(bufsocket.as_bytes(), src)?;
         }
     }
     Ok(())

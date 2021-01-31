@@ -4,6 +4,7 @@
 #![feature(libc)]
 extern crate libc;
 
+use commands::Connection;
 use libc::{size_t, strncpy};
 use std::{error::Error, ffi::CString};
 // use std::net::UdpSocket;
@@ -11,6 +12,8 @@ use std::os::raw::*;
 
 mod commands;
 mod convert;
+#[macro_use]
+mod macros;
 
 unsafe fn craft_responsse(responsse: String, dest: *mut i8, dest_size: c_int) {
     let response_buff = CString::new(responsse).unwrap().into_raw();
@@ -24,6 +27,9 @@ fn error_exit(error: Box<dyn Error>, a3_output: *mut i8, a3_output_size: c_int) 
     }
     1
 }
+
+pub static mut ACALLBACKPTR: Option<CallbackPtr> = None;
+static mut CONNECTION: Connection = Connection::new();
 
 /// # Safety
 // Called by Arma: STRING callExtension STRING
@@ -63,14 +69,35 @@ pub unsafe extern "stdcall" fn RVExtensionArgs(
 
     let result = match &*function_str {
         "fetch" => commands::fetch(&arguments),
-        "send" => commands::send(&arguments),
+        "send" => CONNECTION.send(&arguments),
         "test" => Ok(arguments.join(" | ")),
+        "connect" => CONNECTION.connnect(&arguments),
         _ => Ok(String::from("command not found")),
     };
     let responsse = result.unwrap_or_else(|err| format!("Errored: {}", err));
     craft_responsse(responsse, a3_output, a3_output_size);
 
     a3_argc as c_int
+}
+
+// int(*callbackPtr)(char const *name, char const *function, char const *data) = nullptr;
+type CallbackPtr =
+    extern "stdcall" fn(name: *const c_char, function: *const c_char, data: *const c_char) -> c_int;
+/// # Safety
+// Pointer provided when extension is called for the first time, allow us to trigger ExtensionCallback in A3
+// void __stdcall RVExtensionRegisterCallback(int(*callbackProc)(char const *name, char const *function, char const *data))
+// This function link our DLL to arma, thus it cannot be Safe (raw pointers, etc...)
+// https://community.bistudio.com/wiki/Extensions
+#[allow(non_snake_case)]
+#[no_mangle]
+#[export_name = "RVExtensionRegisterCallback"]
+pub unsafe extern "stdcall" fn RVExtensionRegisterCallback(callbackPtr: CallbackPtr) {
+    ACALLBACKPTR = Some(callbackPtr);
+    callbackPtr(
+        str_to_cstr!("ASMP"),
+        str_to_cstr!("initialized"),
+        str_to_cstr!("1.0"),
+    );
 }
 
 /// # Safety
@@ -83,7 +110,7 @@ pub unsafe extern "stdcall" fn RVExtensionArgs(
 #[export_name = "RVExtensionVersion"]
 pub unsafe extern "stdcall" fn RVExtensionVersion(output: *mut c_char, outputSize: size_t) {
     let versionstr = "V0.1 DEBUG";
-    let response = CString::new(versionstr).unwrap().into_raw();
+    let response = str_to_cstr!(versionstr);
     println!("size_t: {:#?}", outputSize);
     strncpy(output, response, outputSize - 1);
 }

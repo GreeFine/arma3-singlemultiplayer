@@ -3,18 +3,26 @@ name = "singlemultiplayer"
 version = "0.1.0"
 authors = ["GreeFine <greefine@hotmail.fr>"]
 edition = "2018"
+default-run = "ASMPsrv"
 
 [lib]
 name = "ASMP"
 crate-type = ["cdylib", "lib"]
-path = "src/lib.rs"
+path = "src/lib/lib.rs"
 
 [[bin]]
-name = "ASMP"
-path = "src/bin.rs"
+name = "ASMPsrv"
+path = "src/server/main.rs"
+
+[[bin]]
+name = "ASMPdebugger"
+path = "src/debugger/main.rs"
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 reqwest = { version= "0.11", features= ["blocking"] }
 libc = "0.2"
+[target.'cfg(unix)'.dependencies]
+termion = "1.5.2"
